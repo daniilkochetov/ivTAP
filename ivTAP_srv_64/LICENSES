@@ -1,0 +1,5 @@
+ivTAP - Copyright (C) 2017-2018  Daniil Kochetov
+
+The software uses the following open source libraries
+    - jNetPcap Package: Copyright (C) 2007-2010 Sly Technologies, Inc. Distributed under GNU LESSER GENERAL PUBLIC LICENSE
+    - args4j: Copyright (c) 2013 Kohsuke Kawaguchi Distributed under MIT License
