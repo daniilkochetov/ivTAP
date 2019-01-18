@@ -1,6 +1,6 @@
 # ivTAP
 Intellectual virtual network TAP
-ivTAP - Copyright (C) 2017-2018  Daniil Kochetov MARS Inc.
+ivTAP - Copyright (C) 2017-2018  Daniil Kochetov.
 
 The software uses the following open source libraries:
     - jNetPcap Package distributed under GNU LESSER GENERAL PUBLIC LICENSE: Copyright (C) 2007-2010 Sly Technologies, Inc.
