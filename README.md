@@ -20,27 +20,27 @@ This way my applciaiotn performance monitirng solution receives data from many d
 - When you sniff traffic directly from SPAN port it goes to receive (Rx) queue of the probe device network adapter. The server part of ivTAP can only put it into transmit (Tx) queue. Normally, probe device monitrign software doesn't care of it and takes all the traffic (at least it works well in my case). This might be an issue in the only case when your probe uses non-standard network driver. In this case a simple workarround might help: internal tunnel from one logical GRE interface to another one should slove the issue.
 
 ### ivTAP Client settings
-All the settings are stored in ivTAPclient.properties file.
-*sIntName=\\Device\\NPF_{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}* : This is a source device name. Full list of the devices can be displayed by ivTAP client software if you launch its main class with "-l" option. Or if you put wrong name of the device in the configuration file.
-*filterString=tcp port 3389* : This is a BPF filter sting. When you launch the programm winpcap/libpcap will be capturing only those packets which matches this filter.
-*srvAddr=10.0.0.1* : IP address of the host where you run the server part of ivTAP software.
-*srvPort=20004* : UDP port of the ivTAP server, where you send captured packets.
-*speedLimit=10000000* : Maximal bandwidth which ivTAP clinet allowed to use when sending captured packets to ivTAP server over UDP channel. Must be specified in bits per second.
-*bandwidthCheckInterval=10* : Interval of bandwidth checks, specified in seconds.
-*bandwidthBreachIntervals=6* : Maximum number of sequential bandwidth check intervals with breached speedLimit. If bandwidth is always higher than allowed during *bandwidthBreachIntervals* in a row, ivTAP client will stop. This way we avoid unnesessary program terminations on rare bandwidth consumption spikes. 
-*maxIdleIntervals=40* : network capturing process will restart itself if it won't capture any packet during *maxIdleIntervals*. Practical useage in third party cloud environments shown that winpcap/libpcap might silently become unable to capture network traffic after some kind of manipulations at operating system level or at virtual machine environment. This happens without any exception so I find no better workarround
-*maxRestarts=3* : the program will terminate after *maxRestarts* number of restarts when no traffic is detected.
-*businessDaysNumbers=2,3,4,5,6* : there is no use to restart ivTAP clinet at the weekend even if it doesn't see any packet. Names of these days of the week can be verified in the ivTAP client log when it initiates (this is helpful if you are not shure what is the first day of the week number at the particular host).
+All the settings are stored in ivTAPclient.properties file.  
+*sIntName=\\Device\\NPF_{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}* : This is a source device name. Full list of the devices can be displayed by ivTAP client software if you launch its main class with "-l" option. Or if you put wrong name of the device in the configuration file.  
+*filterString=tcp port 3389* : This is a BPF filter sting. When you launch the programm winpcap/libpcap will be capturing only those packets which matches this filter.  
+*srvAddr=10.0.0.1* : IP address of the host where you run the server part of ivTAP software.  
+*srvPort=20004* : UDP port of the ivTAP server, where you send captured packets.  
+*speedLimit=10000000* : Maximal bandwidth which ivTAP clinet allowed to use when sending captured packets to ivTAP server over UDP channel. Must be specified in bits per second.  
+*bandwidthCheckInterval=10* : Interval of bandwidth checks, specified in seconds.  
+*bandwidthBreachIntervals=6* : Maximum number of sequential bandwidth check intervals with breached speedLimit. If bandwidth is always higher than allowed during *bandwidthBreachIntervals* in a row, ivTAP client will stop. This way we avoid unnesessary program terminations on rare bandwidth consumption spikes.  
+*maxIdleIntervals=40* : network capturing process will restart itself if it won't capture any packet during *maxIdleIntervals*. Practical useage in third party cloud environments shown that winpcap/libpcap might silently become unable to capture network traffic after some kind of manipulations at operating system level or at virtual machine environment. This happens without any exception so I find no better workarround.  
+*maxRestarts=3* : the program will terminate after *maxRestarts* number of restarts when no traffic is detected.  
+*businessDaysNumbers=2,3,4,5,6* : there is no use to restart ivTAP clinet at the weekend even if it doesn't see any packet. Names of these days of the week can be verified in the ivTAP client log when it initiates (this is helpful if you are not shure what is the first day of the week number at the particular host).  
 
 ### ivTAP Server settings
-All the settings are stored in ivTAP.properties file.
-*dIntName=eth0* : destination interface where ivTAP injects traffic.
-*bindAddress=127.0.0.1* : internal IP address where ivTAP binds its UDP channel.
-*bindPort=20004* : port number where ivTAP binds its UDP channel.
-*tenantsCheckInterval=10* : interval between ivTAP clients checks, specified in seconds.
-*smptRelayServer=10.0.0.2*: SMTP server for sending alert messages.
-*alertEmailRecipient=unixguide@narod.ru* : email addressee for alert messages.
-*controlMsgIdleTimeout=60* : if any existing client would stop sending control messages for *controlMsgIdleTimeout* seconds, ivTAP server will send an alert.
+All the settings are stored in ivTAP.properties file.  
+*dIntName=eth0* : destination interface where ivTAP injects traffic.  
+*bindAddress=127.0.0.1* : internal IP address where ivTAP binds its UDP channel.  
+*bindPort=20004* : port number where ivTAP binds its UDP channel.  
+*tenantsCheckInterval=10* : interval between ivTAP clients checks, specified in seconds.  
+*smptRelayServer=10.0.0.2*: SMTP server for sending alert messages.  
+*alertEmailRecipient=unixguide@narod.ru* : email addressee for alert messages.  
+*controlMsgIdleTimeout=60* : if any existing client would stop sending control messages for *controlMsgIdleTimeout* seconds, ivTAP server will send an alert.  
 
 
 
