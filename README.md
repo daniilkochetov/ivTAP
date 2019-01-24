@@ -9,6 +9,7 @@ I'm not a professional programmer, at least I didn't own a cent working as a pro
 - Client part of the software supposed to be launched at the operating system where we want to inspect network traffic. Using "winpcap" it captures network traffic filtering only required packets. Then it sends them to the server part over UDP channel. Doing this it constantly controls data flow, watching the UDP bandwidth consumption doesn't breach pre-defined threshold. This way I protect WAN link from being overloaded with reflected traffic.
 - Server part of the software supposed to be launched at the probe device operating system. It extracts packets captured from single or multiple ivTAP clients and injects them to physical SPAN port like they would be captured naturally form physical SPAN port.
 This way my application performance monitoring solution receives data from many distant hosts without placement of physical or virtual probe devise at every cloud or data center.  
+
 See details: https://apa-in-it.blogspot.com/2019/01/centralized-network-traffic-monitoring.html
 
 ## Usage
