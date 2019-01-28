@@ -1,6 +1,7 @@
 # ivTAP
 Intellectual virtual network tap
 ivTAP - Copyright (C) 2017-2018  Daniil Kochetov.
+unixguide@narod.ru
 
 This is a client/server suite to sniff network traffic at the remote hosts and deliver desired packets to a central monitoring probe device. 
 
