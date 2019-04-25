@@ -24,8 +24,8 @@
 package com.ivTAP_srv_64;
 
 /**
- * @author Daniil Kochetov unixguide@narod.ru
- * ivTAP v2.0
+ * @author Daniil Kochetov unixguide@narod.ru 
+ * ivTAP_srv v2.0
  */
 
 import java.io.FileInputStream;
@@ -49,7 +49,8 @@ public class SrvProperties {
 		Properties prop = new Properties();
 		InputStream input = null;
 		
-		input = new FileInputStream("ivTAP.properties");
+		//input = new FileInputStream("ivTAP.properties");
+		input = new FileInputStream(filename);
 		prop.load(input);
 		dIntName = prop.getProperty("dIntName");
 		bindAddr = prop.getProperty("bindAddress");

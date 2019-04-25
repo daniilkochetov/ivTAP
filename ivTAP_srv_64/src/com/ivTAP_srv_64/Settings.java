@@ -24,8 +24,8 @@
 package com.ivTAP_srv_64;
 
 /**
- * @author Daniil Kochetov unixguide@narod.ru
- * ivTAP v2.0
+ * @author Daniil Kochetov unixguide@narod.ru 
+ * ivTAP_srv v2.5
  */
 
 import org.kohsuke.args4j.Option;

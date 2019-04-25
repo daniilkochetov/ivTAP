@@ -22,7 +22,10 @@
  */
 package com.ivTAP_srv_64;
 /**
- * @author Daniil Kochetov unixguide@narod.ru
+ * @author Daniil Kochetov unixguide@narod.ru 
+ * ivTAP_srv v2.5
+ * ivTAP_srv v2.6
+ * - Added description of the tenants
  */
 
 import java.util.logging.Level;
@@ -45,20 +48,18 @@ public class TenantsControlThread extends Thread{
 										
 					tsTimeLong = System.currentTimeMillis();
 					if (tsTimeLong - (t.getLastTimestamp() + t.getCurrentLatency()) >= SrvProperties.controlMsgIdleTimeout * 1000) {
-						IVTAP_SRV.log.log(Level.WARNING, "The client with IP " + t.getClientAddress() + " stopped sending control packets");
-						IVTAP_SRV.mailUtil.sendEmail(SrvProperties.alertEmailRecipient, "ivTAP: tenant stopped", "Tenant at IP:" + t.getClientAddress() 
-								+ " stopped sending control packets");
-						IVTAP_SRV.removeTenant(t.getClientAddress());
+						//Tenant stopped sending control packets
+						IVTAP_SRV.removeTenant(t.getClientAddress(),-3);
 					}
 					if (!t.isIdle() && (tsTimeLong - (t.getLastTimestampWithData() + t.getCurrentLatency()) >= SrvProperties.clientBytesIdleTimeout * 1000)) {
-						IVTAP_SRV.log.log(Level.WARNING, "The client with IP " + t.getClientAddress() + " stopped sending packets with data, but still sends control packets");
-						//IVTAP_SRV.mailUtil.sendEmail(SrvProperties.alertEmailRecipient, "ivTAP: tenant idle", "Tenant at IP:" + t.getClientAddress() 
-						//		+ " stopped sending packets with data, but still sends control packets");
+						IVTAP_SRV.log.log(Level.WARNING, "The client with IP " + t.getClientAddress() + " (" +t.getTenantDescr() + ")" + 
+								" stopped sending packets with data, but still sends control packets");
 						t.setIdle(true);
 					}
 					IVTAP_SRV.log.log(Level.INFO,
-							String.format("Client %s; Bytes counter: %d; Control messages counter %d; Time stamp: %d ms; Latency %d ms; Error %d ms; Max Error %d ms ",
-									t.getClientAddress(), t.getBytesReceived(), t.getControlMessagesReceived(), t.getLastTimestamp(), t.getCurrentLatency(), t.getCurrentError(), t.getMaxError()));
+							String.format("Client %s (%s); Bytes counter: %d; Control messages counter %d; Time stamp: %d ms; Latency %d ms; Error %d ms; Max Error %d ms ",
+									t.getClientAddress(),t.getTenantDescr(), t.getBytesReceived(), t.getControlMessagesReceived(), 
+									t.getLastTimestamp(), t.getCurrentLatency(), t.getCurrentError(), t.getMaxError()));
 				}
 			}
 			IVTAP_SRV.log.info(logStr);

@@ -23,8 +23,10 @@
 
 package com.ivTAP_srv_64;
 /**
- * @author Daniil Kochetov unixguide@narod.ru
- * ivTAP v2.0
+ * @author Daniil Kochetov unixguide@narod.ru 
+ * ivTAP_srv v2.5
+ * ivTAP_srv v2.6
+ * - Added description of the tenants
  */
 
 import java.io.IOException;
@@ -57,9 +59,9 @@ public class EmailUtil {
 	      msg.addHeader("format", "flowed");
 	      msg.addHeader("Content-Transfer-Encoding", "8bit");
 
-	      msg.setFrom(new InternetAddress("no_reply@ivTAP.com", "NoReply-ivTAP"));
+	      msg.setFrom(new InternetAddress("no_reply@ivTAP.ivtap", "NoReply-ivTAP"));
 
-	      msg.setReplyTo(InternetAddress.parse("no_reply@ivTAP.com", false));
+	      msg.setReplyTo(InternetAddress.parse("no_reply@ivTAP.ivtap", false));
 
 	      msg.setSubject(subject, "UTF-8");
 

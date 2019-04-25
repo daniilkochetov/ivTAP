@@ -24,8 +24,10 @@
 package com.ivTAP_srv_64;
 
 /**
- * @author Daniil Kochetov unixguide@narod.ru
- * ivTAP v2.0
+ * @author Daniil Kochetov unixguide@narod.ru 
+ * ivTAP_srv v2.5
+ * ivTAP_srv v2.6
+ * - Added description of the tenants
  */
 
 public class Tenant {
@@ -38,7 +40,18 @@ public class Tenant {
 	protected long currentLatency = 0;
 	protected long maxError = 0;
 	boolean isIdle = false;
+	String tenantDescr = "";
 	
+	public String getTenantDescr() {
+		return tenantDescr;
+	}
+	public void setTenantDescr(String tenantDescr) {
+		if (tenantDescr != null) {
+			this.tenantDescr = tenantDescr;
+		} else {
+			this.tenantDescr = "unknown tenant";
+		}
+	}
 	public boolean isIdle() {
 		return isIdle;
 	}

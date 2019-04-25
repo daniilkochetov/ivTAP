@@ -25,8 +25,11 @@ package com.ivTAP_srv_64;
 
 /**
  * @author Daniil Kochetov unixguide@narod.ru 
- * ivTAP v2.5
- * - Reads "tenant restarts due to idle timeout breached" and "tenant stops due to maximum number of restarts in a row breached" control messages and performs respective actions 
+ * ivTAP_srv v2.5
+ * - Reads "tenant restarts due to idle timeout breached" and "tenant stops due to maximum number of restarts in a row breached" control messages and performs respective actions
+ * ivTAP_srv v2.6
+ * - Added description of the tenants 
+ * - better logic for tenants update
  */
 
 import java.io.IOException;
@@ -36,8 +39,10 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -48,10 +53,10 @@ import org.jnetpcap.PcapIf;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
-import com.ivTAP_srv_64.SrvProperties;
+import com.ivTAP_srv_64.ByteUtils;
 import com.ivTAP_srv_64.Settings;
-import com.ivTAP_srv_64.Tenant;
-import com.ivTAP_srv_64.ByteUtils;;
+import com.ivTAP_srv_64.SrvProperties;
+import com.ivTAP_srv_64.Tenant;;
 
 public class IVTAP_SRV {
 	
@@ -60,6 +65,7 @@ public class IVTAP_SRV {
 	static Logger log = Logger.getLogger(IVTAP_SRV.class.getName());
 	
 	static CopyOnWriteArrayList<Tenant> tenants = new CopyOnWriteArrayList<Tenant>();
+	static Map<String, String> tenantDescrMap = new HashMap<String, String>();
 	static TenantsControlThread tControl = null;
 	static EmailUtil mailUtil = null;
 	
@@ -113,24 +119,24 @@ public class IVTAP_SRV {
     	return;
 	}
 	
-	private static int createNewTenantRecord(DatagramPacket packet) {
-		//returns -1 if error, 2 if successful
+	private static int createNewTenantRecord(DatagramPacket packet) { //returns -1 if error, 0 if successful
 		
 		Tenant nt = new Tenant();
 		nt.setClientAddress(packet.getAddress().getHostAddress());
 		try {
 			bytesReceived = ByteUtils.bytesToLong(packet.getData(),14);
 		} catch (IOException e) {
-			log.log(Level.WARNING, "Exception when reading bytes counter from control message");
+			log.log(Level.WARNING, "Exception when reading bytes counter from control message from tenant IP" + packet.getAddress().getHostAddress());
 			log.log(Level.WARNING, "Exception: ", e);
 			return -1;
 		}
+		nt.setTenantDescr(tenantDescrMap.get(nt.getClientAddress()));
 		nt.setBytesReceived(bytesReceived);
 		nt.setControlMessagesReceived(1);
 		try {
 			tsTimeLong = ByteUtils.bytesToLong(packet.getData(),6);
 		} catch (IOException e) {
-			log.log(Level.WARNING, "Exception when reading last timestamp from control message");
+			log.log(Level.WARNING, "Exception when reading last timestamp from control message from tenant IP" + packet.getAddress().getHostAddress());
 			log.log(Level.WARNING, "Exception: ", e);
 			return -1;
 		}
@@ -145,14 +151,15 @@ public class IVTAP_SRV {
 		nt.setIdle(false);
 		
 		tenants.add(nt);
-		log.log(Level.INFO,String.format("Control message received from new client %s; Bytes counter: %d; Time stamp: %d ms; Latency %d ms; Error %d ms ",
-				nt.getClientAddress(),nt.getBytesReceived(),nt.getLastTimestamp(), nt.getCurrentLatency(), nt.getCurrentError()));
+		log.log(Level.INFO,String.format("Control message received from new client %s (%s); Bytes counter: %d; Time stamp: %d ms; Latency %d ms; Error %d ms ",
+				nt.getClientAddress(),nt.getTenantDescr(),nt.getBytesReceived(),nt.getLastTimestamp(), nt.getCurrentLatency(), nt.getCurrentError()));
+		mailUtil.sendEmail(SrvProperties.alertEmailRecipient, "ivTAP: new tenant detected " + nt.getClientAddress() +  " (" +nt.getTenantDescr() + ")", 
+				"New tenant detected at IP: " + nt.getClientAddress() +  " (" +nt.getTenantDescr() + ")");
  
-		return 2;
+		return 0;
 	}
 	
-	private static int updateExistingTenantRecord(DatagramPacket packet, Tenant t) {
-		//returns -1 if error, 1 if successful
+	private static int updateExistingTenantRecord(DatagramPacket packet, Tenant t) { //returns -1 if error, 0 if successful
 		
 		try {
 			tsTimeLong = ByteUtils.bytesToLong(packet.getData(),6);
@@ -182,19 +189,60 @@ public class IVTAP_SRV {
 		}
 		t.setControlMessagesReceived(t.getControlMessagesReceived()+1);
 		t.setBytesReceived(bytesReceived);
-		return 1;
+		return 0;
+	}
+
+	static void removeTenant(String tAddress, int reason) {
+		for (Tenant t : tenants) {
+			if(t.getClientAddress().equals(tAddress)) {
+				switch (reason) {
+				case -1:
+					log.log(Level.WARNING,"Tenant at IP: " + t.getClientAddress() + " (" +t.getTenantDescr() + ")" + " stopped due to many bandwidth threshold breaches in a row");
+					mailUtil.sendEmail(SrvProperties.alertEmailRecipient, "ivTAP: tenant stopped "+ t.getClientAddress() + " (" +t.getTenantDescr() + ")", "Tenant at IP:" + t.getClientAddress() + " (" +t.getTenantDescr() + ")" 
+							+ " stopped due to many bandwidth threshold breachesin a row");
+					break;
+				case -2: //the tenant stopped due to maximum number of restarts in a row breached
+					log.log(Level.WARNING,"Tenant at IP: " + t.getClientAddress() + " (" +t.getTenantDescr() + ")" + " stopped due to maximum number of restarts in a row breached");
+					mailUtil.sendEmail(SrvProperties.alertEmailRecipient, "ivTAP: tenant stopped " + t.getClientAddress() + " (" +t.getTenantDescr() + ")", "Tenant at IP:" + t.getClientAddress() + " (" +t.getTenantDescr() + ")" 
+							+ " stopped due to maximum number of restarts in a row breached");
+					break;
+				case -3:
+					log.log(Level.WARNING, "The client with IP " + t.getClientAddress() + " stopped sending control packets");
+					mailUtil.sendEmail(SrvProperties.alertEmailRecipient, "ivTAP: tenant stopped "+ t.getClientAddress() + " (" +t.getTenantDescr() + ")", "Tenant at IP:" + t.getClientAddress() + " (" +t.getTenantDescr() + ")"
+							+ " stopped sending control packets");
+					break;
+				default: break;
+				}
+					
+				tenants.remove(t);
+				return;
+			}
+		}
+		return;
 	}
 	
-	private static int updateTenants(DatagramPacket packet) {
-		/*returns:
-		 * 0 if packet data is not control packet
-		 * 1 when existing tenant record updated
-		 * 2 when new tenant record created
-		 * -1 if control packet is malformed
-		*/
+private static int updateTenants(DatagramPacket packet) { // returns -1 if control packet is malformed or 0 if successful
+	
 		System.arraycopy(packet.getData(),0,controlMsgMarker,0,5);
 		
 		if (Arrays.equals(controlMsgMarker, controlMsgPreamble)) {
+			
+			switch(packet.getData()[5]) {
+			case 1: //bandwidth threshold breached
+				log.log(Level.WARNING,"Tenant at IP:" + packet.getAddress().getHostAddress() + " breached bandwidth threshold");
+				break;
+			case 2: //tenant restarts due to idle timeout breached
+				log.log(Level.WARNING,"Tenant at IP:" + packet.getAddress().getHostAddress() + " restarts due to idle timeout breached");
+				break;
+			case -1: //the tenant stopped due to bandwidth threshold breaches
+				removeTenant(packet.getAddress().getHostAddress(),-1);
+				break;
+			case -2: //the tenant stopped due to maximum number of restarts in a row breached
+				removeTenant(packet.getAddress().getHostAddress(),-2);
+				break;
+			default: break;
+			}
+			
 			for (Tenant t : tenants) {
 				if(t.getClientAddress().equals(packet.getAddress().getHostAddress())) {
 					// control packet came from known tenant
@@ -207,20 +255,11 @@ public class IVTAP_SRV {
 		return 0;
 	}
 	
-	static void removeTenant(String tAddress) {
-		for (Tenant t : tenants) {
-			if(t.getClientAddress().equals(tAddress)) {
-				tenants.remove(t);
-				return;
-			}
-		}
-		return;
-	}
+	
 	
 	public static void main(String[] args) {
    		
 		StringBuilder errbuf = new StringBuilder(); // For any error messages
-		int updateTenantResult = 0;
 		
 		tenants.clear();
 		
@@ -255,6 +294,18 @@ public class IVTAP_SRV {
 			e.printStackTrace();
 			return;
 		}
+		//Loading tenants descriptions
+		@SuppressWarnings("unused")
+		TenantsDescription tenantsDescription = new TenantsDescription();
+		try
+        {
+			tenantDescrMap = TenantsDescription.loadProperties("tenantsDescription.properties");
+        }
+        catch (Exception e) {
+        	log.log(Level.WARNING,"Cannot load tenants description properties file: ",e);
+            e.printStackTrace();
+            System.out.println("Cannot load tenants description properties file: " + e.getMessage());
+        }
 		//tenantsCheckInterval = SrvProperties.tenantsCheckInterval;
 		log.log(Level.INFO,"Configuration loaded from ivTAP.properties file");
 		log.log(Level.INFO,"Tenants check interval is " + String.valueOf(SrvProperties.tenantsCheckInterval));
@@ -265,7 +316,7 @@ public class IVTAP_SRV {
 		try {
 			mailUtil = new EmailUtil(SrvProperties.smptRelayServer); 
 		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception when initializing EmailUtil");
+			log.log(Level.SEVERE, "Exception when initializing EmailUtil:", e);
 			e.printStackTrace();
 			return;
 		}
@@ -318,8 +369,6 @@ public class IVTAP_SRV {
 		                log.log(Level.INFO,"ivTAP server processes stopped, resourses deallocated");
 		            }
 		        });
-				
-				
 				byte[] message = new byte[65536];
 				udppacket = new DatagramPacket(message, message.length);
 				while (true) {
@@ -330,46 +379,13 @@ public class IVTAP_SRV {
 					}
 					//Check if it is tenant control packet
 					if (udppacket.getLength() == CONTROLMESSAGELENGHT) {
-						updateTenantResult = updateTenants(udppacket);
-						if (updateTenantResult == 1 || updateTenantResult == 2) {
-							switch(udppacket.getData()[5]) {
-							case 1: //bandwidth threshold breached
-								log.log(Level.WARNING,"Tenant at IP:" + udppacket.getAddress().getHostAddress() + " breached bandwidth threshold");
-								break;
-							case 2: //bandwidth threshold breached
-								log.log(Level.WARNING,"Tenant at IP:" + udppacket.getAddress().getHostAddress() + " restarts due to idle timeout breached");
-								break;
-							case -1: //the tenant stopped due to bandwidth threshold breaches
-								log.log(Level.WARNING,"Tenant at IP:" + udppacket.getAddress().getHostAddress() + " stopped due to many bandwidth threshold breachesin a row");
-								mailUtil.sendEmail(SrvProperties.alertEmailRecipient, "ivTAP: tenant stopped", "Tenant at IP:" + udppacket.getAddress().getHostAddress() 
-										+ " stopped due to many bandwidth threshold breachesin a row");
-								removeTenant(udppacket.getAddress().getHostAddress());
-								break;
-							case -2: //the tenant stopped due to maximum number of restarts in a row breached
-								log.log(Level.WARNING,"Tenant at IP:" + udppacket.getAddress().getHostAddress() + " stopped due to maximum number of restarts in a row breached");
-								mailUtil.sendEmail(SrvProperties.alertEmailRecipient, "ivTAP: tenant stopped", "Tenant at IP:" + udppacket.getAddress().getHostAddress() 
-										+ " stopped due to maximum number of restarts in a row breached");
-								removeTenant(udppacket.getAddress().getHostAddress());
-								break;
-							default: break;
-							}
-						}
-						switch (updateTenantResult) {
-						case -1:
-							log.log(Level.WARNING,"Malformed control packet detected");
-							break;
-						case 1:
-							//log.log(Level.INFO,javax.xml.bind.DatatypeConverter.printHexBinary(udppacket.getData()).substring(0, 23));
-							break;
-						case 2:
-							mailUtil.sendEmail(SrvProperties.alertEmailRecipient, "ivTAP: new tenant detected", "New tenant detected at IP:" + udppacket.getAddress().getHostAddress());
-							break;	
-						default:
-							break;
+						if (updateTenants(udppacket) == -1) {
+							log.log(Level.WARNING,"Malformed control packet detected from " + udppacket.getAddress().getHostAddress());
 						}
 					} else {
 						if (pcapOut.sendPacket(udppacket.getData(),0,udppacket.getLength()) == -1) {
-							log.log(Level.WARNING,pcapOut.getErr());
+							log.log(Level.WARNING,"Can't forward a packet from " + udppacket.getAddress().getHostAddress() + " incapsulating it in UPD packet of " 
+									+ String.valueOf(udppacket.getLength()) + " bytes. The reason is: " + pcapOut.getErr());
 						}
 					}
 				}
